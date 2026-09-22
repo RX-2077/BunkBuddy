@@ -1,0 +1,30 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Student profiles: a user can only read/create/update their own doc.
+    match /students/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow create: if request.auth != null && request.auth.uid == uid;
+      allow update: if request.auth != null && request.auth.uid == uid;
+      allow delete: if false;
+
+      match /attendanceBaselines/{courseCode} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+
+      match /attendanceRecords/{occurrenceId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+    }
+
+    // USN index: enforces one-USN-per-account at the database level.
+    // Docs are created once by authService and never modified/deleted
+    // by clients.
+    match /usnIndex/{usn} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if false;
+    }
+  }
+}
